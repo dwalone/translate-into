@@ -10,6 +10,7 @@ import re
 from googletrans import Translator
 from langcodes import langcodes
 import mistune
+import tomd
 
 
 langExceptions = {
@@ -101,20 +102,21 @@ def parseCall(text):
     if tarr[0] in ('u/translate-into', '/u/translate-into'):
         
         if len(tarr) == 1:            
-            return None, 'en'
+            return [None, 'en']
         
         elif len(tarr) == 2:            
-            return None, tarr[1]
+            return [None, tarr[1]]
         
         elif len(tarr) == 4:            
             if tarr[2] == 'from':                
-                return tarr[3], tarr[1]
+                return [tarr[3], tarr[1]]
             
         else:
             return 'Invalid syntax. Check my pinned post for usage!'
         
     else:
         return 'Invalid syntax. Check my pinned post for usage!'
+    
     
 def formatTranslation(text, source, destination):
     reply = text+'\n\n'+source+' -> '+destination
@@ -126,7 +128,7 @@ def getTextFromHTML(htmlText):
         htmlText = htmlText.replace(k, v)
     htmlText = htmlText.replace('&nbsp;', '')
     for i, c in enumerate(htmlText):
-        if c == '>':
+        if c == '>' and htmlText[i-4:i] != 'code':
             try:
                 closePos = getClose(htmlText[i:]) + i
                 if closePos != i+1:
@@ -147,25 +149,30 @@ def replaceHTMLWithTranslation(html, original, translated):
     
 
             
-def main():    
+def main():   
     
-    for r in praw.models.util.stream_generator(reddit.inbox.unread):
+    for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=False):
         call = r.body
         body = r.parent().body 
         
-        src, dest = parseCall(call)
-        html = mdToHTML(body)
-        originalText = getTextFromHTML(html)
-        result = translate(originalText, src, dest)
-        if isinstance(result, list):
-            html = replaceHTMLWithTranslation(html, originalText, result[0])
-            reply = formatTranslation(html, result[1], result[2])
-            print(reply)
-        elif result == 'error':
-            print("error")
-            #break
+
+        langs = parseCall(call)
+        if isinstance(langs, list):
+            html = mdToHTML(body)
+            originalText = getTextFromHTML(html)
+            result = translate(originalText, langs[0], langs[1])
+            if isinstance(result, list):
+                html = replaceHTMLWithTranslation(html, originalText, result[0])
+                reply = formatTranslation(html, result[1], result[2])
+                print(tomd.Tomd(reply).markdown)
+            elif result == 'error':
+                print("error")
+                #break
+            else:
+                print('Invalid syntax. '+result)
         else:
-            print('Invalid syntax. '+result)
+            print(langs)
+            
     
     
 
