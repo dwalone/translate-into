@@ -26,7 +26,8 @@ langExceptions = {
 
 specialChars = {
     '&gt;' : '__000__',
-    '&lt;' : '__00__'
+    '&lt;' : '__00__',
+    '&amp;' : '__0__'
     }
 
 
@@ -47,6 +48,8 @@ def clearInbox():
     
 def mdToHTML(body):
     md_doc = open('input.md', 'w')
+    for i in ('&#x200B;', '&nbsp;', '*'):    
+        body = body.replace(i, '')
     md_doc.write(body)
     md_doc.close()
     
@@ -63,6 +66,8 @@ def mdToHTML(body):
     
     generated_html += "</body></html>"
     generated_html = generated_html.replace('\n', '')
+    for k, v in specialChars.items():
+        generated_html = generated_html.replace(k, v)
     html_doc.write(generated_html)
     html_doc.close() 
     return generated_html
@@ -124,9 +129,6 @@ def formatTranslation(text, source, destination):
             
 def getTextFromHTML(htmlText):
     originalText = ''
-    for k, v in specialChars.items():
-        htmlText = htmlText.replace(k, v)
-    htmlText = htmlText.replace('&nbsp;', '')
     for i, c in enumerate(htmlText):
         if c == '>' and htmlText[i-4:i] != 'code':
             try:
@@ -134,44 +136,57 @@ def getTextFromHTML(htmlText):
                 if closePos != i+1:
                     snippet = htmlText[i+1:closePos]
                     originalText += snippet+'\n'
-            except TypeError as e:
-                print(e)
+            except TypeError:
+                pass
     return originalText
             
 def replaceHTMLWithTranslation(html, original, translated):
-    orArr = original.split('\n')[:-1]
+    orArr = original.split('\n')
+    orArr = [i for i in orArr if i != '']
     trArr = translated.split('\n')
     for i in range(len(orArr)):
         html = html.replace(orArr[i], trArr[i])
     for k, v in specialChars.items():
         html = html.replace(v, k)
     return html
+
+def appendInfo(reply):
+    reply += reply+'\n'+'^[info](https://www.reddit.com/user/translate-into/comments/jf7k2l/translateinto_usage_information/) ^| ^[github](https://github.com/dwalone/translate-into) ^| ^[feedback](https://www.reddit.com/message/compose/?to=FullRaise)'
     
 
             
-def main():   
+def main():  
     
     for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=False):
-        call = r.body
-        body = r.parent().body 
         
-
-        langs = parseCall(call)
-        if isinstance(langs, list):
-            html = mdToHTML(body)
-            originalText = getTextFromHTML(html)
-            result = translate(originalText, langs[0], langs[1])
-            if isinstance(result, list):
-                html = replaceHTMLWithTranslation(html, originalText, result[0])
-                reply = formatTranslation(html, result[1], result[2])
-                print(tomd.Tomd(reply).markdown)
-            elif result == 'error':
-                print("error")
-                #break
+        if isinstance(r, praw.models.Comment):
+            
+            call = r.body            
+            post = r.parent()
+    
+            if isinstance(post, praw.models.Comment):
+                body = post.body
+                
             else:
-                print('Invalid syntax. '+result)
-        else:
-            print(langs)
+                body = '# '+post.title+'\n'+post.selftext
+     
+            langs = parseCall(call)
+            if isinstance(langs, list):
+                html = mdToHTML(body)
+                originalText = getTextFromHTML(html)
+                result = translate(originalText, langs[0], langs[1])
+                if isinstance(result, list):
+                    html = replaceHTMLWithTranslation(html, originalText, result[0])
+                    reply = tomd.Tomd(html).markdown
+                    reply = formatTranslation(reply, result[1], result[2])
+                elif result == 'error':
+                    print("error")
+                else:
+                    reply = 'Invalid syntax. '+result
+            else:
+                reply = langs
+                
+            print(reply)
             
     
     
@@ -179,3 +194,4 @@ def main():
 
 if __name__ == '__main__':
     main()       
+    
