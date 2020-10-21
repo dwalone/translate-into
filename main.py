@@ -91,7 +91,7 @@ def translate(text, source, destination):
         return [translation.text, langcodes[translation.src], langcodes[translation.dest]]
     
     except ValueError as e:
-        return e
+        return str(e)
     
     except:
         return 'error'
@@ -124,18 +124,22 @@ def getTextFromHTML(htmlText):
     originalText = ''
     for k, v in specialChars.items():
         htmlText = htmlText.replace(k, v)
+    htmlText = htmlText.replace('&nbsp;', '')
     for i, c in enumerate(htmlText):
         if c == '>':
-            closePos = getClose(htmlText[i:]) + i
-            if closePos != i+1:
-                snippet = htmlText[i+1:closePos]
-                originalText += snippet+'\n'
+            try:
+                closePos = getClose(htmlText[i:]) + i
+                if closePos != i+1:
+                    snippet = htmlText[i+1:closePos]
+                    originalText += snippet+'\n'
+            except TypeError as e:
+                print(e)
     return originalText
             
 def replaceHTMLWithTranslation(html, original, translated):
     orArr = original.split('\n')
     trArr = translated.split('\n')
-    for i in len(range(orArr)):
+    for i in range(len(orArr)):
         html = html.replace(orArr[i], trArr[i])
     for k, v in specialChars.item():
         html = html.replace(v, k)
@@ -170,13 +174,17 @@ dsds[dsds](https://youtube.com)
     '''
     
     
-    comment = 'u/translate-into english'
+    comment = 'u/translate-into german'
     src, dest = parseCall(comment)
+    print(src,dest)
     html = mdToHTML(body)
-    text = getTextFromHTML(html)
-    result = translate(text, src, dest)
+    print(html)
+    originalText = getTextFromHTML(html)
+    print(originalText)
+    result = translate(originalText, src, dest)
     if isinstance(result, list):
-        reply = formatTranslation(result[0], result[1], result[2])
+        html = replaceHTMLWithTranslation(html, originalText, result[0])
+        reply = formatTranslation(html, result[1], result[2])
         print(reply)
     elif result == 'error':
         print("error")
@@ -189,3 +197,18 @@ dsds[dsds](https://youtube.com)
 
 if __name__ == '__main__':
     main()       
+    
+    
+text = '''
+Hello, enter text here to see what your reddit post will look like.
+Here's an example of some reddit formatting tricks:
+Bold, italic, code, 
+link
+, strikethrough
+hjhjbjbh /r/pics hjgjhbhj __000____00__
+dsds
+dsds
+Quote
+Nested quote
+[ffefw]'''
+translator.translate(text, dest='german').text
