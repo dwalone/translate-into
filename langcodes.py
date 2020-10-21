@@ -1,3 +1,9 @@
+'''
+
+Using eiter the code or the name are equally valid
+
+'''
+
 langcodes = {
     'af': 'afrikaans',
     'sq': 'albanian',

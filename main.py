@@ -5,12 +5,14 @@ DO source and dest checking in separate func or in main, not in translate
 '''
 
 import praw
+from prawcore.exceptions import RequestException
 import keys
 import re
 from googletrans import Translator
 from langcodes import langcodes
 import mistune
 import tomd
+import time
 
 
 langExceptions = {
@@ -152,45 +154,62 @@ def replaceHTMLWithTranslation(html, original, translated):
 
 def appendInfo(reply):
     reply += reply+'\n'+'^[info](https://www.reddit.com/user/translate-into/comments/jf7k2l/translateinto_usage_information/) ^| ^[github](https://github.com/dwalone/translate-into) ^| ^[feedback](https://www.reddit.com/message/compose/?to=FullRaise)'
-    
+    return reply  
 
+def try_get_seconds_to_wait(ex_msg):
+        try:
+            msg = ex_msg.lower()
+            search = re.search(r'\b(minutes)\b', msg)
+            minutes = int(msg[search.start()-2]) + 1
+            return minutes * 60
+        except:
+            return 60
             
 def main():  
     
-    for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=False):
+    try:
+    
+        for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=True):
+            
+            if isinstance(r, praw.models.Comment):
+                
+                call = r.body            
+                post = r.parent()
         
-        if isinstance(r, praw.models.Comment):
-            
-            call = r.body            
-            post = r.parent()
-    
-            if isinstance(post, praw.models.Comment):
-                body = post.body
-                
-            else:
-                body = '# '+post.title+'\n'+post.selftext
-     
-            langs = parseCall(call)
-            if isinstance(langs, list):
-                html = mdToHTML(body)
-                originalText = getTextFromHTML(html)
-                result = translate(originalText, langs[0], langs[1])
-                if isinstance(result, list):
-                    html = replaceHTMLWithTranslation(html, originalText, result[0])
-                    reply = tomd.Tomd(html).markdown
-                    reply = formatTranslation(reply, result[1], result[2])
-                elif result == 'error':
-                    print("error")
+                if isinstance(post, praw.models.Comment):
+                    body = post.body
+                    
                 else:
-                    reply = 'Invalid syntax. '+result
-            else:
-                reply = langs
+                    body = '# '+post.title+'\n'+post.selftext
+         
+                langs = parseCall(call)
+                if isinstance(langs, list):
+                    html = mdToHTML(body)
+                    originalText = getTextFromHTML(html)
+                    result = translate(originalText, langs[0], langs[1])
+                    if isinstance(result, list):
+                        html = replaceHTMLWithTranslation(html, originalText, result[0])
+                        reply = tomd.Tomd(html).markdown
+                        reply = formatTranslation(reply, result[1], result[2])
+                    elif result == 'error':
+                        print("error")
+                    else:
+                        reply = 'Invalid syntax. '+result
+                else:
+                    reply = langs
+                 
+                reply = appendInfo(reply)    
+                r.reply(reply)
                 
-            print(reply)
+    except praw.exceptions.APIException as e:
+        print("waiting")
+        time.sleep(try_get_seconds_to_wait(e))
+        
+    except RequestException:
+        print("internet error")
+        
+    
             
-    
-    
-
 
 if __name__ == '__main__':
     main()       
