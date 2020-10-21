@@ -137,11 +137,11 @@ def getTextFromHTML(htmlText):
     return originalText
             
 def replaceHTMLWithTranslation(html, original, translated):
-    orArr = original.split('\n')
+    orArr = original.split('\n')[:-1]
     trArr = translated.split('\n')
     for i in range(len(orArr)):
         html = html.replace(orArr[i], trArr[i])
-    for k, v in specialChars.item():
+    for k, v in specialChars.items():
         html = html.replace(v, k)
     return html
     
@@ -176,11 +176,8 @@ dsds[dsds](https://youtube.com)
     
     comment = 'u/translate-into german'
     src, dest = parseCall(comment)
-    print(src,dest)
     html = mdToHTML(body)
-    print(html)
     originalText = getTextFromHTML(html)
-    print(originalText)
     result = translate(originalText, src, dest)
     if isinstance(result, list):
         html = replaceHTMLWithTranslation(html, originalText, result[0])
