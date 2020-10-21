@@ -1,3 +1,9 @@
+'''TODO
+
+DO source and dest checking in separate func or in main, not in translate
+
+'''
+
 import praw
 import keys
 import re
@@ -15,6 +21,11 @@ langExceptions = {
     'burmese' : 'my',
     'scots' : 'gd',
     'gaelic' : 'gd',
+    }
+
+specialChars = {
+    '&gt;' : '__000__',
+    '&lt;' : '__00__'
     }
 
 
@@ -52,7 +63,8 @@ def mdToHTML(body):
     generated_html += "</body></html>"
     generated_html = generated_html.replace('\n', '')
     html_doc.write(generated_html)
-    html_doc.close()   
+    html_doc.close() 
+    return generated_html
     
 def getClose(s):
     openBr = 0
@@ -89,14 +101,14 @@ def parseCall(text):
     if tarr[0] in ('u/translate-into', '/u/translate-into'):
         
         if len(tarr) == 1:            
-            return [None, 'en']
+            return None, 'en'
         
         elif len(tarr) == 2:            
-            return [None, tarr[1]]
+            return None, tarr[1]
         
         elif len(tarr) == 4:            
             if tarr[2] == 'from':                
-                return [tarr[3], tarr[1]]
+                return tarr[3], tarr[1]
             
         else:
             return 'Invalid syntax. Check my pinned post for usage!'
@@ -108,18 +120,28 @@ def formatTranslation(text, source, destination):
     reply = text+'\n\n'+source+' -> '+destination
     return reply
             
-def formatText(text):
-    characters_to_remove = "*`"
-    pattern = "[" + characters_to_remove + "]"
-    text = re.sub(pattern, "", text)
-    replaceSpecial = {}
-    tarr = text.split()
-    for i,s in enumerate(tarr):
-        key = '__'+str(i)+'__'
-        
-        if s.startswith(('r/', '/r/', 'u/', '/u/')):
-            tarr[i] = key
-            replaceSpecial[key] = s
+def getTextFromHTML(htmlText):
+    originalText = ''
+    for k, v in specialChars.items():
+        htmlText = htmlText.replace(k, v)
+    for i, c in enumerate(htmlText):
+        if c == '>':
+            closePos = getClose(htmlText[i:]) + i
+            if closePos != i+1:
+                snippet = htmlText[i+1:closePos]
+                originalText += snippet+'\n'
+    return originalText
+            
+def replaceHTMLWithTranslation(html, original, translated):
+    orArr = original.split('\n')
+    trArr = translated.split('\n')
+    for i in len(range(orArr)):
+        html = html.replace(orArr[i], trArr[i])
+    for k, v in specialChars.item():
+        html = html.replace(v, k)
+    return html
+    
+
             
 def main():    
     
@@ -147,8 +169,23 @@ dsds[dsds](https://youtube.com)
 [ffefw]
     '''
     
-    mdToHTML(body)
+    
+    comment = 'u/translate-into english'
+    src, dest = parseCall(comment)
+    html = mdToHTML(body)
+    text = getTextFromHTML(html)
+    result = translate(text, src, dest)
+    if isinstance(result, list):
+        reply = formatTranslation(result[0], result[1], result[2])
+        print(reply)
+    elif result == 'error':
+        print("error")
+        #break
+    else:
+        print('Invalid syntax. '+result)
+    
+    
 
 
 if __name__ == '__main__':
-    main()         
+    main()       
