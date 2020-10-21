@@ -1,5 +1,0 @@
-Abi ama yoksa ayıp oluyor. Onlara varda bize yok mu? Daha bugün gruba attı birisi, sen Türkiye'ye gelene kadar Euro değer kazanıyor diye. Adam resmen dalga geçiyor.
-
-Ben geçenlerde yazdım Türkiye nasıl iyi ucuzladı mı diye, AKP'li gurbetçi bana sen Yunanistan'a git, gelme Türkiye'ye dedi. Ben söyleyince vatan haini oluyorum, başkası dediğinde tık sesleri yok.
-
-Gerçi hata bende AMK mallarla aynı grupta ne işim var. Gerçi iş grubu, problem orada zaten...
