@@ -1,7 +1,10 @@
 import praw
 import keys
+import re
 from googletrans import Translator
 from langcodes import langcodes
+import mistune
+
 
 langExceptions = {
     'chinese' : 'zh-cn',
@@ -14,7 +17,53 @@ langExceptions = {
     'gaelic' : 'gd',
     }
 
+
+reddit = praw.Reddit(client_id = keys.client_id,
+                     client_secret = keys.client_secret,
+                     user_agent = keys.user_agent,
+                     username = keys.username,
+                     password = keys.password)
+
 translator = Translator()
+
+def clearInbox():
+    unread_messages = []
+    for item in reddit.inbox.unread(limit=None):
+        if isinstance(item, praw.models.Message):
+            unread_messages.append(item)
+    reddit.inbox.mark_read(unread_messages) 
+    
+def mdToHTML(body):
+    md_doc = open('input.md', 'w')
+    md_doc.write(body)
+    md_doc.close()
+    
+    html_doc = open('converted.html', "w", encoding="utf-8")
+    generated_html = (
+        "<!DOCTYPE html>"
+        + "<html><head></head><body>"
+    )
+    
+    with open('input.md', encoding="utf-8") as f:
+        content = f.readlines()
+        for line in content:
+            generated_html += mistune.markdown(line)
+    
+    generated_html += "</body></html>"
+    generated_html = generated_html.replace('\n', '')
+    html_doc.write(generated_html)
+    html_doc.close()   
+    
+def getClose(s):
+    openBr = 0
+    for pos, char in enumerate(s):
+        if char == '>':
+            openBr += 1
+        elif char == '<':
+            openBr -= 1
+        if openBr == 0:
+            return pos
+            break
 
 def translate(text, source, destination):
     
@@ -60,6 +109,9 @@ def formatTranslation(text, source, destination):
     return reply
             
 def formatText(text):
+    characters_to_remove = "*`"
+    pattern = "[" + characters_to_remove + "]"
+    text = re.sub(pattern, "", text)
     replaceSpecial = {}
     tarr = text.split()
     for i,s in enumerate(tarr):
@@ -69,25 +121,34 @@ def formatText(text):
             tarr[i] = key
             replaceSpecial[key] = s
             
-                        
-
-
-
-'''
-
-reddit = praw.Reddit(client_id = keys.client_id,
-                     client_secret = keys.client_secret,
-                     user_agent = keys.user_agent,
-                     username = keys.username,
-                     password = keys.password)
-
-unread_messages = []
-for item in reddit.inbox.unread(limit=None):
-    if isinstance(item, praw.models.Message):
-        unread_messages.append(item)
-reddit.inbox.mark_read(unread_messages)
-
-for r in praw.models.util.stream_generator(reddit.inbox.unread):
-    
+def main():    
     
     '''
+    for r in praw.models.util.stream_generator(reddit.inbox.unread):
+        body = r.parent().body 
+    '''
+    
+    
+    body = '''
+Hello, enter text here to see what your reddit post will look like.
+
+Here's an example of some reddit formatting tricks:
+Bold, italic, code, [link](http://redditpreview.com), strikethrough
+
+hjhjbjbh /r/pics hjgjhbhj ><
+
+dsds[dsds](https://youtube.com)
+
+&nbsp;
+
+>Quote
+>>Nested quote
+
+[ffefw]
+    '''
+    
+    mdToHTML(body)
+
+
+if __name__ == '__main__':
+    main()         
