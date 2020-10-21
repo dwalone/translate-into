@@ -32,6 +32,8 @@ specialChars = {
     '&amp;' : '__0__'
     }
 
+consts = {}
+
 
 reddit = praw.Reddit(client_id = keys.client_id,
                      client_secret = keys.client_secret,
@@ -87,9 +89,9 @@ def getClose(s):
 
 def translate(text, source, destination):
     
+    
     source = langExceptions[source] if source in langExceptions.keys() else source
     destination = langExceptions[destination] if destination in langExceptions.keys() else destination
-    
     try:
         if source is None:
             translation = translator.translate(text, dest=destination)
@@ -141,6 +143,22 @@ def getTextFromHTML(htmlText):
             except TypeError:
                 pass
     return originalText
+
+def repConstants(text):
+    tarr = text.split('\n')
+    tarrnew = []
+    count = 1
+    for i in range(len(tarr)):
+        strarr = tarr[i].split()
+        for j in range(len(strarr)):
+            if strarr[j].startswith(('r/', '/r/', 'u/', '/u/')):
+                consts['__'+str(count)+'__'] = strarr[j]
+                strarr[j] = '__'+str(count)+'__'
+                
+        string = ' '.join(strarr)
+        tarrnew.append(string)
+    return '\n'.join(tarrnew)
+    
             
 def replaceHTMLWithTranslation(html, original, translated):
     orArr = original.split('\n')
@@ -150,10 +168,12 @@ def replaceHTMLWithTranslation(html, original, translated):
         html = html.replace(orArr[i], trArr[i])
     for k, v in specialChars.items():
         html = html.replace(v, k)
+    for k, v in consts.items():
+        html = html.replace(k, v)
     return html
 
 def appendInfo(reply):
-    reply += reply+'\n'+'^[info](https://www.reddit.com/user/translate-into/comments/jf7k2l/translateinto_usage_information/) ^| ^[github](https://github.com/dwalone/translate-into) ^| ^[feedback](https://www.reddit.com/message/compose/?to=FullRaise)'
+    reply += '\n\n'+'^[info](https://www.reddit.com/user/translate-into/comments/jf7k2l/translateinto_usage_information/) ^| ^[github](https://github.com/dwalone/translate-into) ^| ^[feedback](https://www.reddit.com/message/compose/?to=FullRaise)'
     return reply  
 
 def try_get_seconds_to_wait(ex_msg):
@@ -170,6 +190,7 @@ def main():
     try:
     
         for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=True):
+            reply = ''
             
             if isinstance(r, praw.models.Comment):
                 
@@ -186,7 +207,8 @@ def main():
                 if isinstance(langs, list):
                     html = mdToHTML(body)
                     originalText = getTextFromHTML(html)
-                    result = translate(originalText, langs[0], langs[1])
+                    originalTextAltered = repConstants(originalText)
+                    result = translate(originalTextAltered, langs[0], langs[1])
                     if isinstance(result, list):
                         html = replaceHTMLWithTranslation(html, originalText, result[0])
                         reply = tomd.Tomd(html).markdown
@@ -200,6 +222,7 @@ def main():
                  
                 reply = appendInfo(reply)    
                 r.reply(reply)
+                print(reply+'\n')
                 
     except praw.exceptions.APIException as e:
         print("waiting")
@@ -213,4 +236,7 @@ def main():
 
 if __name__ == '__main__':
     main()       
+    
+    
+
     
