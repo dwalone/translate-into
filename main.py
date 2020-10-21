@@ -149,63 +149,26 @@ def replaceHTMLWithTranslation(html, original, translated):
             
 def main():    
     
-    '''
     for r in praw.models.util.stream_generator(reddit.inbox.unread):
+        call = r.body
         body = r.parent().body 
-    '''
-    
-    
-    body = '''
-Hello, enter text here to see what your reddit post will look like.
-
-Here's an example of some reddit formatting tricks:
-Bold, italic, code, [link](http://redditpreview.com), strikethrough
-
-hjhjbjbh /r/pics hjgjhbhj ><
-
-dsds[dsds](https://youtube.com)
-
-&nbsp;
-
->Quote
->>Nested quote
-
-[ffefw]
-    '''
-    
-    
-    comment = 'u/translate-into german'
-    src, dest = parseCall(comment)
-    html = mdToHTML(body)
-    originalText = getTextFromHTML(html)
-    result = translate(originalText, src, dest)
-    if isinstance(result, list):
-        html = replaceHTMLWithTranslation(html, originalText, result[0])
-        reply = formatTranslation(html, result[1], result[2])
-        print(reply)
-    elif result == 'error':
-        print("error")
-        #break
-    else:
-        print('Invalid syntax. '+result)
+        
+        src, dest = parseCall(call)
+        html = mdToHTML(body)
+        originalText = getTextFromHTML(html)
+        result = translate(originalText, src, dest)
+        if isinstance(result, list):
+            html = replaceHTMLWithTranslation(html, originalText, result[0])
+            reply = formatTranslation(html, result[1], result[2])
+            print(reply)
+        elif result == 'error':
+            print("error")
+            #break
+        else:
+            print('Invalid syntax. '+result)
     
     
 
 
 if __name__ == '__main__':
     main()       
-    
-    
-text = '''
-Hello, enter text here to see what your reddit post will look like.
-Here's an example of some reddit formatting tricks:
-Bold, italic, code, 
-link
-, strikethrough
-hjhjbjbh /r/pics hjgjhbhj __000____00__
-dsds
-dsds
-Quote
-Nested quote
-[ffefw]'''
-translator.translate(text, dest='german').text
