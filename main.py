@@ -186,50 +186,51 @@ def try_get_seconds_to_wait(ex_msg):
             return 60
             
 def main():  
+    while True:
     
-    try:
-    
-        for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=True):
-            reply = ''
-            
-            if isinstance(r, praw.models.Comment):
-                
-                call = r.body            
-                post = r.parent()
+        try:
         
-                if isinstance(post, praw.models.Comment):
-                    body = post.body
+            for r in praw.models.util.stream_generator(reddit.inbox.mentions, skip_existing=True):
+                reply = ''
+                
+                if isinstance(r, praw.models.Comment):
                     
-                else:
-                    body = '# '+post.title+'\n'+post.selftext
-         
-                langs = parseCall(call)
-                if isinstance(langs, list):
-                    html = mdToHTML(body)
-                    originalText = getTextFromHTML(html)
-                    originalTextAltered = repConstants(originalText)
-                    result = translate(originalTextAltered, langs[0], langs[1])
-                    if isinstance(result, list):
-                        html = replaceHTMLWithTranslation(html, originalText, result[0])
-                        reply = tomd.Tomd(html).markdown
-                        reply = formatTranslation(reply, result[1], result[2])
-                    elif result == 'error':
-                        print("error")
+                    call = r.body            
+                    post = r.parent()
+            
+                    if isinstance(post, praw.models.Comment):
+                        body = post.body
+                        
                     else:
-                        reply = 'Invalid syntax. '+result
-                else:
-                    reply = langs
-                 
-                reply = appendInfo(reply)    
-                r.reply(reply)
-                print(reply+'\n')
-                
-    except praw.exceptions.APIException as e:
-        print("waiting")
-        time.sleep(try_get_seconds_to_wait(e))
-        
-    except RequestException:
-        print("internet error")
+                        body = '# '+post.title+'\n'+post.selftext
+             
+                    langs = parseCall(call)
+                    if isinstance(langs, list):
+                        html = mdToHTML(body)
+                        originalText = getTextFromHTML(html)
+                        originalTextAltered = repConstants(originalText)
+                        result = translate(originalTextAltered, langs[0], langs[1])
+                        if isinstance(result, list):
+                            html = replaceHTMLWithTranslation(html, originalText, result[0])
+                            reply = tomd.Tomd(html).markdown
+                            reply = formatTranslation(reply, result[1], result[2])
+                        elif result == 'error':
+                            print("error")
+                        else:
+                            reply = 'Invalid syntax. '+result
+                    else:
+                        reply = langs
+                     
+                    reply = appendInfo(reply)    
+                    r.reply(reply)
+                    print(reply+'\n')
+                    
+        except praw.exceptions.APIException as e:
+            print("waiting")
+            time.sleep(try_get_seconds_to_wait(e))
+            
+        except RequestException:
+            print("internet error")
         
     
             
